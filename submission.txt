@@ -301,30 +301,173 @@ Part 2: Inferences and Analysis
 
 Choosing city = Toronto , category = Restaurants
 	
-i. Do the two groups you chose to analyze have a different distribution of hours?
+i. Do the two groups you chose to analyze have a different distribution of hours? Yes, it does seem as if the two groups have different distributions of hours. 
 
+The 2-3 star group features businesses that close relatively early. There are only two businesses that stay open past midnight (to 4am).
+These businesses also feature a single set of hours - the business is continuously open with no break in hours for slow parts of the day.
 
-ii. Do the two groups you chose to analyze have a different number of reviews?
-         
++-----------------------+----------+
+| hours                 | count(*) |
++-----------------------+----------+
+| Friday|10:30-21:00    |        1 |
+| Friday|11:00-23:00    |        1 |
+| Friday|9:00-4:00      |        1 |
+| Monday|10:30-21:00    |        1 |
+| Monday|11:00-23:00    |        1 |
+| Monday|9:00-23:00     |        1 |
+| Saturday|10:00-4:00   |        1 |
+| Saturday|10:30-21:00  |        1 |
+| Saturday|11:00-23:00  |        1 |
+| Sunday|10:00-23:00    |        1 |
+| Sunday|11:00-19:00    |        1 |
+| Sunday|11:00-23:00    |        1 |
+| Thursday|10:30-21:00  |        1 |
+| Thursday|11:00-23:00  |        1 |
+| Thursday|9:00-23:00   |        1 |
+| Tuesday|10:30-21:00   |        1 |
+| Tuesday|11:00-23:00   |        1 |
+| Tuesday|9:00-23:00    |        1 |
+| Wednesday|10:30-21:00 |        1 |
+| Wednesday|11:00-23:00 |        1 |
+| Wednesday|9:00-23:00  |        1 |
++-----------------------+----------+
+
+The 4-5 star group has more businesses that stay open past midnight, until 2am. This group also features more businesses with 'evening only' hours.
+
++-----------------------+----------+
+| hours                 | count(*) |
++-----------------------+----------+
+| Friday|11:00-23:00    |        1 |
+| Friday|18:00-23:00    |        1 |
+| Friday|18:00-2:00     |        1 |
+| Monday|11:00-23:00    |        1 |
+| Monday|16:00-2:00     |        1 |
+| Saturday|11:00-23:00  |        1 |
+| Saturday|16:00-2:00   |        1 |
+| Saturday|18:00-23:00  |        1 |
+| Sunday|12:00-16:00    |        1 |
+| Sunday|14:00-23:00    |        1 |
+| Sunday|16:00-2:00     |        1 |
+| Thursday|11:00-23:00  |        1 |
+| Thursday|18:00-23:00  |        1 |
+| Thursday|18:00-2:00   |        1 |
+| Tuesday|11:00-23:00   |        1 |
+| Tuesday|18:00-2:00    |        1 |
+| Wednesday|11:00-23:00 |        1 |
+| Wednesday|18:00-23:00 |        1 |
+| Wednesday|18:00-2:00  |        1 |
++-----------------------+----------+
+
+SQL code used for analysis:
+
+select hours, count(*)
+from business
+join category on category.business_id = business.id
+join hours on hours.business_id = business.id
+where
+    category.category = 'Restaurants' and
+    business.city = 'Toronto' and
+    business.stars >= 2(4) and business.stars <= 3(5)
+group by hours.hours
+order by hours.hours
+
+ii. Do the two groups you chose to analyze have a different number of reviews? Yes, there is a significant difference in the average number of reviews between the two groups.
+
++-----------+----------+--------------------+
+| starbins  | count(*) |  avg(review_count) |
++-----------+----------+--------------------+
+| 2-3 stars |        3 | 28.666666666666668 |
+| 4-5 stars |        5 |               41.2 |
+| other     |        2 |                3.5 |
++-----------+----------+--------------------+
+
+SQL code used for analysis:
+
+select case
+  when business.stars >= 2.0 and business.stars <= 3.0 then '2-3 stars'
+  when business.stars >= 4.0 and business.stars <= 5.0 then '4-5 stars'
+  else 'other'
+  end starbins, count(*), avg(review_count)
+from business join category on business.id = category.business_id
+where category.category = 'Restaurants' and business.city = 'Toronto'
+group by starbins
          
 iii. Are you able to infer anything from the location data provided between these two groups? Explain.
 
+While the distinction between average latitudes is relatively minimal between the two groups, there does seem to be a distinct difference in average longitude.
+This implies a North / South division in the city of Toronto. Perhaps South Toronto is nicer than North Toronto, or has a more vibrant business scene.
+
++-----------+------------------------+-------------------------+
+| starbins  | avg(business.latitude) | avg(business.longitude) |
++-----------+------------------------+-------------------------+
+| 2-3 stars |     43.654633333333344 |                -79.3832 |
+| 4-5 stars |      43.67998000000001 |               -79.44802 |
+| other     |               43.74635 |               -79.42155 |
++-----------+------------------------+-------------------------+
+
 SQL code used for analysis:
 
-		
+select case
+  when business.stars >= 2.0 and business.stars <= 3.0 then '2-3 stars'
+  when business.stars >= 4.0 and business.stars <= 5.0 then '4-5 stars'
+  else 'other'
+  end starbins, avg(business.latitude), avg(business.longitude)
+from business join category on business.id = category.business_id
+where category.category = 'Restaurants' and business.city = 'Toronto'
+group by starbins		
 		
 2. Group business based on the ones that are open and the ones that are closed. What differences can you find between the ones that are still open and the ones that are closed? List at least two differences and the SQL code you used to arrive at your answer.
 		
-i. Difference 1:
+i. Difference 1: Unpopulated Neighborhood field. Businesses that are closed have lower (0.54 vs 0.62) probability of having no neighborhood defined for themselves.
+		 This is actually the opposite of what I expected to find; I figured businesses with less online information may have a harder time attracting business and staying open.
+
++---------+--------------------+--------------------+--------------------+
+| is_open | blank_neighborhood | total_neighborhood |              ratio |
++---------+--------------------+--------------------+--------------------+
+|       0 |                824 |               1520 | 0.5421052631578948 |
+|       1 |               5250 |               8480 | 0.6191037735849056 |
++---------+--------------------+--------------------+--------------------+
+
+SQL code used for analysis:
+
+select
+    is_open,
+    blank_neighborhood,
+    total_neighborhood,
+    cast(blank_neighborhood as float) / total_neighborhood as ratio
+from (
+    select
+        is_open,
+        count(*) as total_neighborhood,
+        count(case when neighborhood="" then 1 end) as blank_neighborhood
+    from business
+    group by is_open
+)
          
-         
-ii. Difference 2:
-         
-         
+ii. Difference 2: Businesses that are closed have - on average - a higher proportion of 1 & 2 star reviews.
+		  We may expect closed businesses to feature fewer reviews; however, the proportion of low reviews are significantly higher.
+		  For closed businesses: 1.14 / 79.57 = 1.43 % . For open businesses: 1.03 / 222.54 = 0.46 % .
+
++---------+--------------------+----------------------------+
+| is_open | avg(one_two_stars) | avg(business.review_count) |
++---------+--------------------+----------------------------+
+|       0 | 1.1428571428571428 |          79.57142857142857 |
+|       1 | 1.0338983050847457 |         222.54237288135593 |
++---------+--------------------+----------------------------+
          
 SQL code used for analysis:
 
-	
+select
+    business.is_open,
+    avg(one_two_stars),
+    avg(business.review_count)
+from business join (
+    select count(*) as one_two_stars, business_id
+    from review
+    where stars <= 2
+    group by business_id) as subquery
+on business.id = subquery.business_id
+group by business.is_open	
 	
 3. For this last part of your analysis, you are going to choose the type of analysis you want to conduct on the Yelp dataset and are going to prepare the data for analysis.
 
