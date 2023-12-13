@@ -474,12 +474,60 @@ group by business.is_open
 Ideas for analysis include: Parsing out keywords and business attributes for sentiment analysis, clustering businesses to find commonalities or anomalies between them, predicting the overall star rating for a business, predicting the number of fans a user will have, and so on. These are just a few examples to get you started, so feel free to be creative and come up with your own problem you want to solve. Provide answers, in-line, to all of the following:
 	
 i. Indicate the type of analysis you chose to do:
-         
+
+I am interested in analyzing the distributions of star ratings given by each user, clustering them into groups, and observing whether heuristic user review profiles can be created from the cluster.
          
 ii. Write 1-2 brief paragraphs on the type of data you will need for your analysis and why you chose that data:
-                           
-                  
-iii. Output of your finished dataset:
-         
+
+For performing this analysis I will need - for each user - a condensed list consisting of star ratings and review counts per star rating.
+I can recreate other distribution data such as averages, standard deviations, and quartiles from this condensed information.
+Condensing the table on the server side will reduce the load on my client application performing the clustering algorithm calculations.
+The condensed table can be easily represented client side as a dict of dicts (key = user_id, value = dict of stars/counts) or a dataframe.
+It can be easily transformed into other statistical data (the averages / quartiles mentioned above) to run through knn clustering as well.
+  
+iii. Output of your finished dataset: (I would expect the real dataset to have more meaningful data. Obviously that wouldn't be provided to us for free.)
+
++------------------------+--------------+-----+-----+-------+------+------+
+| id                     | review_count | one | two | three | four | five |
++------------------------+--------------+-----+-----+-------+------+------+
+| -fUARDNuXAfrOn4WLSZLgA |          904 |   0 |   1 |     0 |    0 |    0 |
+| -hxUwfo3cMnLTv-CAaP69A |          676 |   0 |   0 |     0 |    0 |    1 |
+| -d4NT5rjIpZEz07f5rYtlg |          564 |   0 |   0 |     0 |    1 |    0 |
+| --Qh8yKWAvIP4V4K8ZPfHA |          503 |   0 |   0 |     0 |    1 |    0 |
+| -k5yFUChotBMGQgHdFZvLQ |          449 |   0 |   0 |     0 |    0 |    1 |
+| -FFqZupwGHf-vrsUHMr_vw |          418 |   0 |   0 |     0 |    0 |    1 |
+| -CLMUyt1G88DHYytsuPebQ |          345 |   0 |   0 |     0 |    1 |    0 |
+| -aq0KKWyMbhugu183UGj7Q |          279 |   0 |   1 |     0 |    0 |    0 |
+| -CxzWyvRj3b3tvFdelf38w |          259 |   0 |   0 |     0 |    0 |    1 |
+| -ARdx8hOcEWlMDjzwLYZ_g |          257 |   0 |   0 |     0 |    1 |    0 |
+| -hzflbbqcKxDTLfDcjQEzA |          240 |   1 |   0 |     0 |    0 |    0 |
+| -0udWcFQEt2M8kM3xcIofw |          235 |   0 |   0 |     1 |    1 |    0 |
+| -BevLRnJhh9JeIT2g5I3mQ |          198 |   0 |   0 |     0 |    0 |    1 |
+| -fQPzH-e-ubDIiLQhybEjQ |          196 |   0 |   0 |     1 |    0 |    0 |
+| -C-l8EHSLXtZZVfUAUhsPA |          178 |   0 |   0 |     0 |    1 |    0 |
+| -594af_E7Z9VVjQc9pJK3g |          174 |   0 |   0 |     0 |    1 |    0 |
+| -KpEgEen1tj-jdjIS7uVOw |          167 |   0 |   0 |     0 |    1 |    0 |
+| -ljK_haRwcJSgqhMcqoQyg |          167 |   0 |   0 |     0 |    0 |    1 |
+| -fEe8XBeJ6pGLIeAyAWzfw |          122 |   0 |   0 |     0 |    0 |    1 |
+| -AkZkFH_md2-2kaSsvgrkg |          117 |   1 |   0 |     0 |    0 |    0 |
+| -7bM_DeL2Kj2CuYuVDsLNg |          109 |   0 |   0 |     0 |    1 |    0 |
+| -9S_Fh-sQebyB1yhEM5zHw |           96 |   0 |   0 |     0 |    0 |    1 |
+| -beWfoN6lbHXCOvWWfDClw |           92 |   0 |   0 |     0 |    0 |    1 |
+| -K8IQoaXwzxBCGx1IU86aw |           90 |   0 |   0 |     0 |    0 |    1 |
+| -Biq3Dt8YhkRJEO_ITrvww |           86 |   0 |   0 |     0 |    0 |    2 |
++------------------------+--------------+-----+-----+-------+------+------+
+(Output limit exceeded, 25 of 69 total rows shown)
          
 iv. Provide the SQL code you used to create your final dataset:
+
+select
+    user.id,
+    user.review_count,
+    count(case when stars = 1 then 1 end) as one,
+    count(case when stars = 2 then 1 end) as two,
+    count(case when stars = 3 then 1 end) as three,
+    count(case when stars = 4 then 1 end) as four,
+    count(case when stars = 5 then 1 end) as five
+from user join review on user.id = review.user_id
+group by user_id
+order by user.review_count desc
